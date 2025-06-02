@@ -217,28 +217,27 @@ async def tmeme(event):
 
 SPAM_STATUS = {}
 
-@ayiin_cmd(pattern="(delayspam|dspam|dsspam) (\d+) (\d+)(?: (.+))?")
-async def delay_spam(event):
-    if event.chat_id in SPAM_STATUS and SPAM_STATUS[event.chat_id]:
-        return await event.edit("⚠️ Spam sedang berjalan di sini!")
+@ayiin_cmd(pattern=r"(?:delayspam|dspam) (\d+)\s+(\d+)\s+([\s\S]+)")
+async def delayspam(event):
+    if event.chat_id in BLACKLIST_CHAT:
+        return await event.edit("⛔ Tidak bisa digunakan di sini.")
 
-    reply = await event.get_reply_message()
-    delay = int(event.pattern_match.group(2))
-    count = int(event.pattern_match.group(3))
-    extra_text = event.pattern_match.group(4)
+    delay = int(event.pattern_match.group(1))  # Delay dalam milidetik
+    repeat = int(event.pattern_match.group(2))  # Jumlah pengulangan
+    text = event.pattern_match.group(3)  # Teks semua baris
 
-    media = reply.media if reply and reply.media else None
+    lines = text.strip().splitlines()  # Pecah jadi per baris
 
-    # ambil caption
-    if extra_text:
-        caption = extra_text
-    elif reply and reply.message:
-        caption = reply.message
-    else:
-        caption = None
+    await event.delete()
 
-    if not media and not caption:
-        return await event.edit("❌ Tidak ada media atau teks yang bisa dikirim!")
+    try:
+        for _ in range(repeat):
+            for line in lines:
+                if line.strip():
+                    await event.respond(line)
+                    await asyncio.sleep(delay / 1000)
+    except Exception as e:
+        await event.client.send_message(event.chat_id, f"❌ Error: {str(e)}")
 
     await event.edit(f"▶️ Mulai spam {'media' if media else 'teks'} sebanyak {count}x, delay {delay}s")
 
